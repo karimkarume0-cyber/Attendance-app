@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendly - Digital Attendance Workspace</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-color: #e2e8f0;
+      --border-focus: #3b82f6;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 2.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .app-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.025em;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-card {
+      background: #fafafa;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      color: var(--text-main);
+      background-color: #fff;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+    }
+
+    input[readonly] {
+      background-color: #f1f5f9;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        padding: 1.5rem;
+      }
+    }
+
+    .session-header {
+      background: var(--primary-light);
+      border: 1px solid #bfdbfe;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.75rem;
+    }
+
+    .session-header h2 {
+      font-size: 1.2rem;
+      color: #1e40af;
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .session-meta {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: #1e3a8a;
+    }
+
+    .signature-wrapper {
+      background: #ffffff;
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .signature-wrapper:hover {
+      border-color: var(--primary);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 160px;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .signature-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.secondary {
+      background-color: #e2e8f0;
+      color: var(--text-main);
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background-color: #cbd5e1;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .link-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="app-brand">
+      <div class="app-icon">A</div>
+      <h1 id="pageTitle">Attendly Workspace</h1>
+    </div>
+    <p class="subtitle" id="pageSubtitle">Configure your professional attendance tracking session or complete participant verification.</p>
+
+    <!-- Session Setup / Admin View -->
+    <div id="session" class="section-card">
+      <div class="form-group">
+        <label for="inputTitle">Session Title</label>
+        <input type="text" id="inputTitle" placeholder="e.g., Leadership & Management Masterclass">
+      </div>
+      <div class="row" style="margin-top: 1.25rem;">
+        <div class="form-group">
+          <label for="inputFacilitator">Facilitator / Instructor</label>
+          <input type="text" id="inputFacilitator" placeholder="e.g., Karim Karume">
+        </div>
+        <div class="form-group">
+          <label for="inputLocation">Location / Venue</label>
+          <input type="text" id="inputLocation" placeholder="e.g., Kampala Boardroom A">
+        </div>
+      </div>
+      <div class="row" style="margin-top: 1.25rem;">
+        <div class="form-group">
+          <label for="date">Session Date</label>
+          <input type="date" id="date">
+        </div>
+        <div class="form-group">
+          <label for="day">Day of Week</label>
+          <input type="text" id="day" readonly>
+        </div>
+      </div>
+      <button class="btn-full" id="generateLinkBtn" style="margin-top: 1.5rem;">Generate Participant Check-In Link</button>
+      
+      <div id="linkOutput" class="link-box" hidden>
+        <label for="shareableLink" style="margin-bottom: 0.25rem;">Shareable Participant Link</label>
+        <input type="text" id="shareableLink" readonly>
+      </div>
+    </div>
+
+    <!-- Participant Mode Header View -->
+    <div id="sessionHeader" class="session-header" hidden>
+      <h2 id="sessionHeaderTitle">Attendance Session</h2>
+      <ul class="session-meta">
+        <li id="sessionLocationItem" hidden><strong>Location:</strong> <span id="sessionLocation"></span></li>
+        <li id="sessionFacilitatorItem" hidden><strong>Facilitator:</strong> <span id="sessionFacilitator"></span></li>
+        <li id="sessionDateItem" hidden><strong>Date:</strong> <span id="sessionDate"></span></li>
+        <li id="sessionDayItem" hidden><strong>Day:</strong> <span id="sessionDay"></span></li>
+      </ul>
+    </div>
+
+    <!-- Check-In Form Fields -->
+    <div id="checkInForm" class="section-card">
+      <div class="row">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input type="text" id="fullName" placeholder="Enter your full name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="text" id="email" placeholder="name@example.com">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 1.25rem;">
+        <label>Digital Signature</label>
+        <div class="signature-wrapper">
+          <canvas id="signatureCanvas"></canvas>
+        </div>
+        <div class="signature-actions">
+          <button type="button" class="secondary" id="clearSignature" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Clear Signature</button>
+          <span class="hint">Sign clearly inside the box</span>
+        </div>
+      </div>
+
+      <button class="btn-full" id="submitAttendance">Submit Attendance Record</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function isValidIsoDate(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const [year, month, day] = value.split("-").map(Number);
+      const dateObj = new Date(Date.UTC(year, month - 1, day));
+      return (
+        dateObj.getUTCFullYear() === year &&
+        dateObj.getUTCMonth() === month - 1 &&
+        dateObj.getUTCDate() === day
+      );
+    }
+
+    function getDayName(dateString) {
+      if (!isValidIsoDate(dateString)) return "";
+      const [year, month, day] = dateString.split("-").map(Number);
+      const dateObj = new Date(Date.UTC(year, month - 1, day));
+      return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(dateObj);
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlMetadata = {
+      title: urlParams.get('title'),
+      location: urlParams.get('location'),
+      facilitator: urlParams.get('facilitator'),
+      date: urlParams.get('date'),
+      day: urlParams.get('day')
+    };
+
+    const isParticipantMode = Boolean(urlMetadata.title || urlMetadata.date);
+
+    const canvas = $('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); });
+    canvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); });
+    window.addEventListener('mouseup', () => { isDrawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => { isDrawing = true; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); e.preventDefault(); });
+    canvas.addEventListener('touchmove', (e) => { if (!isDrawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); e.preventDefault(); });
+    window.addEventListener('touchend', () => { isDrawing = false; });
+
+    $('clearSignature').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      $('date').value = today;
+      $('day').value = getDayName(today);
+
+      $('date').addEventListener('change', (e) => {
+        $('day').value = getDayName(e.target.value);
+      });
+
+      if (isParticipantMode) {
+        document.body.classList.add('participant-mode');
+        $('pageTitle').textContent = urlMetadata.title || 'Attendance Session';
+        $('pageSubtitle').textContent = 'Please complete your participant details and sign below.';
+        $('session').hidden = true;
+        $('sessionHeader').hidden = false;
+        $('sessionHeaderTitle').textContent = urlMetadata.title || 'Attendance Session';
+        
+        if (urlMetadata.location) {
+          $('sessionLocationItem').hidden = false;
+          $('sessionLocation').textContent = urlMetadata.location;
+        }
+        if (urlMetadata.facilitator) {
+          $('sessionFacilitatorItem').hidden = false;
+          $('sessionFacilitator').textContent = urlMetadata.facilitator;
+        }
+        if (urlMetadata.date) {
+          $('sessionDateItem').hidden = false;
+          $('sessionDate').textContent = urlMetadata.date;
+        }
+        if (urlMetadata.day) {
+          $('sessionDayItem').hidden = false;
+          $('sessionDay').textContent = urlMetadata.day;
+        }
+      }
+    });
+
+    $('generateLinkBtn').addEventListener('click', () => {
+      const title = encodeURIComponent($('inputTitle').value || 'General Session');
+      const facilitator = encodeURIComponent($('inputFacilitator').value || '');
+      const location = encodeURIComponent($('inputLocation').value || '');
+      const date = encodeURIComponent($('date').value);
+      const day = encodeURIComponent($('day').value);
+
+      const baseUrl = window.location.href.split('?')[0];
+      const generatedUrl = `${baseUrl}?title=${title}&facilitator=${facilitator}&location=${location}&date=${date}&day=${day}`;
+      
+      $('shareableLink').value = generatedUrl;
+      $('linkOutput').hidden = false;
+      $('shareableLink').select();
+    });
+
+    $('submitAttendance').addEventListener('click', () => {
+      const fullName = $('fullName').value.trim();
+      const email = $('email').value.trim();
+
+      if (!fullName || !email) {
+        alert('Please fill in both your full name and email address.');
+        return;
+      }
+
+      const signatureData = canvas.toDataURL();
+      
+      const record = {
+        title: isParticipantMode ? urlMetadata.title : $('inputTitle').value,
+        date: isParticipantMode ? urlMetadata.date : $('date').value,
+        fullName,
+        email,
+        signatureData,
+        timestamp: new Date().toISOString()
+      };
+
+      let existingRecords = JSON.parse(localStorage.getItem('attendly_records') || '[]');
+      existingRecords.push(record);
+      localStorage.setItem('attendly_records', JSON.stringify(existingRecords));
+
+      alert('Attendance successfully recorded!');
+      $('fullName').value = '';
+      $('email').value = '';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+  </script>
+</body>
+</html>
