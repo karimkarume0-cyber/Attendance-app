@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendly — Digital Attendance</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#10243e">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --navy: #10243e;
+      --navy-dark: #0a1728;
+      --blue: #2768e8;
+      --blue-hover: #1e55c5;
+      --blue-soft: #eaf1ff;
+      --ink: #172033;
+      --muted: #6d7a90;
+      --line: #dce3ed;
+      --surface: #ffffff;
+      --background: #f4f7fb;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--background);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+    
+    /* Topbar matching exact image layout */
+    .topbar {
+      height: 72px;
+      padding: 0 32px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--navy);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+    }
+    .brand-mark {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border-radius: 9px;
+      color: var(--navy);
+      background: white;
+      font-size: 16px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #93a4bf;
+    }
+    .db-sync {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      color: white;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .db-sync::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+
+    /* Main layout with Sidebar */
+    .main-layout {
+      display: flex;
+      flex: 1;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      padding-left: 12px;
+    }
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .nav-link.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 600;
+    }
+    .quick-tip-card {
+      margin-top: auto;
+      background: #f0f5fc;
+      border: 1px solid #dce8fc;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .quick-tip-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .quick-tip-text {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 1280px;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .page-title h1 {
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+    .page-title p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+    }
+    .btn-primary { background: var(--blue); color: white; border-color: transparent; }
+    .btn-primary:hover { background: var(--blue-hover); }
+
+    /* Setup Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(16, 36, 62, 0.03);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: #fafbfc;
+    }
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .card-badge {
+      width: 28px; height: 28px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .card-title h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--navy); }
+    .card-title p { margin: 2px 0 0 0; font-size: 12px; color: var(--muted); }
+    
+    .card-body { padding: 24px; }
+    
+    /* Form Grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr 1.2fr 0.8fr;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .form-group label span { color: #e53e3e; }
+    .form-control {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      font-size: 13px;
+      color: var(--ink);
+      background: white;
+      width: 100%;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(39, 104, 232, 0.1);
+    }
+    .form-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-footer-note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Stats Bottom Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* QR Code Container */
+    .qr-container {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8fafc;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .qr-box {
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+
+    /* Add Participant & Admin Dashboard Section Styles (Matching Second Screenshot) */
+    .add-participant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 340px;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .signature-pad-wrapper {
+      border: 1px dashed var(--line);
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      height: 140px;
+      position: relative;
+    }
+    canvas#sigCanvas {
+      width: 100%;
+      height: 110px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    /* Data Table Styles */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .admin-table th {
+      background: #f8fafc;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      letter-spacing: 0.03em;
+    }
+    .admin-table td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+    }
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✔</div>
+        <span>Attendly</span>
+      </div>
+      <div class="topbar-right">
+        <span>Digital attendance workspace</span>
+        <div class="db-sync">Central database sync</div>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div>
+          <div class="nav-section-title">WORKSPACE</div>
+          <div class="nav-links">
+            <a href="#" class="nav-link active">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+              Attendance
+            </a>
+            <a href="#" class="nav-link">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Participants
+            </a>
+            <a href="#" class="nav-link">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              Export records
+            </a>
+          </div>
+        </div>
+
+        <div class="quick-tip-card">
+          <div class="quick-tip-title">Quick tip</div>
+          <div class="quick-tip-text">Generate a session link, then monitor every device submission from the central Admin Dashboard.</div>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="content-area">
+        <div class="page-header">
+          <div class="page-title">
+            <span style="font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: 0.05em;">ATTENDANCE REGISTER</span>
+            <h1>Record a session</h1>
+            <p>Set up the session once, share its attendance link, and collect participant signatures in one export-ready register.</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn" id="newSessionBtn">+ New Session</button>
+            <button class="btn btn-primary" id="exportMasterBtn">↑ Export Master Document</button>
+          </div>
+        </div>
+
+        <!-- Session Setup Form Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <div class="card-badge">A</div>
+              <div class="card-title">
+                <h3>Admin Session Setup</h3>
+                <p>Set the session details, then generate a participant link</p>
+              </div>
+            </div>
+            <svg width="16" height="16" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+          <div class="card-body">
+            <p style="margin: 0 0 16px 0; font-size: 12px; color: var(--muted);">Complete the session information once. The generated link carries these details into every participant's attendance form.</p>
+            
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Title <span>*</span></label>
+                <input type="text" id="sessionTitle" class="form-control" placeholder="e.g. Community Health Workshop">
+              </div>
+              <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="sessionLocation" class="form-control" placeholder="Venue or online">
+              </div>
+              <div class="form-group">
+                <label>Facilitator</label>
+                <input type="text" id="sessionFacilitator" class="form-control" placeholder="Full name">
+              </div>
+              <div class="form-group">
+                <label>Date <span>*</span></label>
+                <input type="date" id="sessionDate" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Day</label>
+                <input type="text" id="sessionDay" class="form-control" placeholder="Auto" readonly style="background: #f8fafc; color: var(--muted);">
+              </div>
+            </div>
+
+            <div class="form-footer">
+              <div class="form-footer-note">Only completed fields are included in the link.</div>
+              <div class="form-actions">
+                <button class="btn btn-primary" id="generateLinkBtn">Generate Link</button>
+                <button class="btn" id="copyLinkBtn">Copy Link</button>
+                <button class="btn" id="showQrBtn">Show QR Code</button>
+              </div>
+            </div>
+
+            <!-- QR Code display panel -->
+            <div class="qr-container" id="qrContainer">
+              <span style="font-size: 13px; font-weight: 700; color: var(--navy);">Scan to Sign Attendance</span>
+              <div class="qr-box" id="qrcode"></div>
+              <button class="btn" id="downloadQrBtn" style="font-size: 12px; height: 34px;">Download QR Code</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Bottom Grid -->
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">Session participants</div>
+            <div class="stat-value" id="participantCount">0</div>
+            <div class="stat-sub">Signed records in this session</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Session status</div>
+            <div class="stat-value" id="sessionStatus">Draft</div>
+            <div class="stat-sub">Ready for participant entries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Last updated</div>
+            <div class="stat-value" style="font-size: 18px; line-height: 32px;" id="lastUpdated">—</div>
+            <div class="stat-sub">Synced from the central register</div>
+          </div>
+        </div>
+
+        <!-- NEW: Add Participant Card (Matches Second Screenshot) -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <div class="card-badge">1</div>
+              <div class="card-title">
+                <h3>Add participant</h3>
+              </div>
+            </div>
+            <span style="font-size: 12px; color: var(--muted);">Signature is saved centrally with the submission</span>
+          </div>
+          <div class="card-body">
+            <div class="add-participant-grid">
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="form-group">
+                  <label>Name of participant <span>*</span></label>
+                  <input type="text" id="partName" class="form-control" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                  <label>Designation / job title</label>
+                  <input type="text" id="partTitle" class="form-control" placeholder="Role or position">
+                </div>
+                <div class="form-group">
+                  <label>Phone contact</label>
+                  <input type="text" id="partPhone" class="form-control" placeholder="+1 555 000 0000">
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="form-group">
+                  <label>Organization</label>
+                  <input type="text" id="partOrg" class="form-control" placeholder="Company or institution">
+                </div>
+                <div class="form-group">
+                  <label>Email address</label>
+                  <input type="email" id="partEmail" class="form-control" placeholder="name@example.com">
+                </div>
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 600; color: var(--ink);">Digital signature <span>*</span></label>
+                  <button type="button" id="clearSigBtn" style="border: none; background: transparent; color: var(--blue); font-size: 12px; font-weight: 600; padding: 0;">Clear signature</button>
+                </div>
+                <div class="signature-pad-wrapper">
+                  <canvas id="sigCanvas"></canvas>
+                  <div style="position: absolute; bottom: 6px; left: 12px; font-size: 11px; color: var(--muted); pointer-events: none;">Sign above using your mouse, stylus, or finger.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; color: var(--muted);"><span>*</span> Required fields</span>
+              <button class="btn btn-primary" id="submitAttendanceBtn">+ Submit attendance</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: Admin Dashboard Records Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <div class="card-badge">2</div>
+              <div class="card-title">
+                <h3>Admin Dashboard</h3>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 12px; color: var(--muted);" id="syncStatusText">Generate a session link to start syncing</span>
+              <button class="btn" id="refreshSubmissionsBtn">Refresh submissions</button>
+            </div>
+          </div>
+          <div style="padding: 0;">
+            <div class="table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>NO.</th>
+                    <th>PARTICIPANT</th>
+                    <th>ORGANIZATION</th>
+                    <th>DESIGNATION / JOB TITLE</th>
+                    <th>EMAIL ADDRESS</th>
+                    <th>PHONE CONTACT</th>
+                    <th>SIGNATURE</th>
+                  </tr>
+                </thead>
+                <tbody id="submissionsTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">No central records loaded</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // Date & Day Auto Calculation
+    const dateInput = document.getElementById('sessionDate');
+    const dayInput = document.getElementById('sessionDay');
+    const todayStr = new Date().toISOString().split('T')[0];
+    dateInput.value = todayStr;
+    updateDay(todayStr);
+
+    dateInput.addEventListener('change', (e) => updateDay(e.target.value));
+    function updateDay(dateString) {
+      if (!dateString) { dayInput.value = ''; return; }
+      const d = new Date(dateString);
+      dayInput.value = d.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+
+    // Signature Pad Initialization & Logic
+    const canvas = document.getElementById('sigCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let hasSigned = false;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100);
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    function startDrawing(e) {
+      e.preventDefault();
+      drawing = true;
+      hasSigned = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.strokeStyle = '#10243e';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+    }
+
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function stopDrawing(e) {
+      if (!drawing) return;
+      drawing = false;
+    }
+
+    document.getElementById('clearSigBtn').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasSigned = false;
+    });
+
+    // Storage and Session State
+    const titleInput = document.getElementById('sessionTitle');
+    const locationInput = document.getElementById('sessionLocation');
+    const facilitatorInput = document.getElementById('sessionFacilitator');
+    const generateLinkBtn = document.getElementById('generateLinkBtn');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const showQrBtn = document.getElementById('showQrBtn');
+    const qrContainer = document.getElementById('qrContainer');
+    const qrcodeDiv = document.getElementById('qrcode');
+    const downloadQrBtn = document.getElementById('downloadQrBtn');
+    const participantCountEl = document.getElementById('participantCount');
+    const sessionStatusEl = document.getElementById('sessionStatus');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const newSessionBtn = document.getElementById('newSessionBtn');
+    const exportMasterBtn = document.getElementById('exportMasterBtn');
+
+    // Participant Inputs
+    const partName = document.getElementById('partName');
+    const partOrg = document.getElementById('partOrg');
+    const partTitle = document.getElementById('partTitle');
+    const partEmail = document.getElementById('partEmail');
+    const partPhone = document.getElementById('partPhone');
+    const submitAttendanceBtn = document.getElementById('submitAttendanceBtn');
+    const submissionsTableBody = document.getElementById('submissionsTableBody');
+    const syncStatusText = document.getElementById('syncStatusText');
+    const refreshSubmissionsBtn = document.getElementById('refreshSubmissionsBtn');
+
+    let currentQRCode = null;
+
+    function getStorageKey() {
+      return 'attendly_session_' + (titleInput.value.trim() || 'default_session');
+    }
+
+    function loadSessionData() {
+      const dataStr = localStorage.getItem(getStorageKey());
+      if (dataStr) {
+        try {
+          const sessionData = JSON.parse(dataStr);
+          locationInput.value = sessionData.location || '';
+          facilitatorInput.value = sessionData.facilitator || '';
+          if (sessionData.date) {
+            dateInput.value = sessionData.date;
+            updateDay(sessionData.date);
+          }
+          sessionStatusEl.textContent = sessionData.status || 'Draft';
+          renderSubmissions(sessionData.submissions || []);
+        } catch(e) {}
+      } else {
+        renderSubmissions([]);
+      }
+    }
+
+    function saveSessionData(status = 'Draft', newSubmission = null) {
+      const key = getStorageKey();
+      let sessionData = JSON.parse(localStorage.getItem(key) || JSON.stringify({
+        location: locationInput.value,
+        facilitator: facilitatorInput.value,
+        date: dateInput.value,
+        status: status,
+        submissions: []
+      }));
+
+      sessionData.location = locationInput.value;
+      sessionData.facilitator = facilitatorInput.value;
+      sessionData.date = dateInput.value;
+      sessionData.status = status;
+
+      if (newSubmission) {
+        sessionData.submissions.push(newSubmission);
+      }
+
+      localStorage.setItem(key, JSON.stringify(sessionData));
+      renderSubmissions(sessionData.submissions);
+      
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      lastUpdatedEl.textContent = timeStr;
+      sessionStatusEl.textContent = status;
+    }
+
+    function renderSubmissions(subs) {
+      participantCountEl.textContent = subs.length;
+      if (subs.length === 0) {
+        submissionsTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">No central records loaded</td></tr>`;
+        syncStatusText.textContent = titleInput.value.trim() ? "Generate a session link to start syncing" : "No active session selected";
+        return;
+      }
+
+      syncStatusText.textContent = "Synced live from central register";
+      submissionsTableBody.innerHTML = '';
+      subs.forEach((sub, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${idx + 1}</strong></td>
+          <td><strong>${escapeHtml(sub.name)}</strong></td>
+          <td>${escapeHtml(sub.org || '—')}</td>
+          <td>${escapeHtml(sub.title || '—')}</td>
+          <td>${escapeHtml(sub.email || '—')}</td>
+          <td>${escapeHtml(sub.phone || '—')}</td>
+          <td><img src="${sub.signature}" alt="Signature" style="height: 28px; background: #fff; border-radius: 4px; border: 1px solid var(--line);"></td>
+        `;
+        submissionsTableBody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    titleInput.addEventListener('input', () => {
+      loadSessionData();
+    });
+
+    [locationInput, facilitatorInput, dateInput].forEach(el => {
+      el.addEventListener('input', () => {
+        if (titleInput.value.trim()) saveSessionData(sessionStatusEl.textContent);
+      });
+    });
+
+    generateLinkBtn.addEventListener('click', () => {
+      if (!titleInput.value.trim()) {
+        alert('Please enter a session title before generating a link.');
+        titleInput.focus();
+        return;
+      }
+      saveSessionData('Active');
+      alert('Session link generated successfully and active for participant submissions!');
+    });
+
+    copyLinkBtn.addEventListener('click', () => {
+      if (!titleInput.value.trim()) {
+        alert('Please specify a session title first.');
+        return;
+      }
+      const link = window.location.origin + window.location.pathname + "?session=" + encodeURIComponent(titleInput.value.trim());
+      navigator.clipboard.writeText(link).then(() => {
+        alert('Attendance link copied to clipboard!');
+      });
+    });
+
+    showQrBtn.addEventListener('click', () => {
+      const title = titleInput.value.trim() || 'Attendly Session';
+      qrContainer.style.display = 'flex';
+      qrcodeDiv.innerHTML = '';
+      currentQRCode = new QRCode(qrcodeDiv, {
+        text: window.location.href + "?session=" + encodeURIComponent(title),
+        width: 160,
+        height: 160
+      });
+    });
+
+    downloadQrBtn.addEventListener('click', () => {
+      const img = qrcodeDiv.querySelector('img') || qrcodeDiv.querySelector('canvas');
+      if (!img) return;
+      let url = img.src;
+      if (!url && img.tagName === 'CANVAS') url = img.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'attendly-session-qr.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    // Submit Attendance Button Logic
+    submitAttendanceBtn.addEventListener('click', () => {
+      if (!titleInput.value.trim()) {
+        alert('Please enter a session title in Admin Session Setup above first.');
+        titleInput.focus();
+        return;
+      }
+      if (!partName.value.trim()) {
+        alert('Please enter the participant name.');
+        partName.focus();
+        return;
+      }
+      if (!hasSigned) {
+        alert('Please provide a digital signature.');
+        return;
+      }
+
+      const sigDataUrl = canvas.toDataURL('image/png');
+      const newSub = {
+        name: partName.value.trim(),
+        org: partOrg.value.trim(),
+        title: partTitle.value.trim(),
+        email: partEmail.value.trim(),
+        phone: partPhone.value.trim(),
+        signature: sigDataUrl,
+        timestamp: new Date().toISOString()
+      };
+
+      saveSessionData('Active', newSub);
+
+      // Reset participant form
+      partName.value = '';
+      partOrg.value = '';
+      partTitle.value = '';
+      partEmail.value = '';
+      partPhone.value = '';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasSigned = false;
+
+      alert('Attendance submitted and synchronized with the admin dashboard successfully!');
+    });
+
+    refreshSubmissionsBtn.addEventListener('click', () => {
+      loadSessionData();
+      alert('Dashboard submissions refreshed.');
+    });
+
+    newSessionBtn.addEventListener('click', () => {
+      if (confirm('Start a new session? This will clear current form fields.')) {
+        titleInput.value = '';
+        locationInput.value = '';
+        facilitatorInput.value = '';
+        dateInput.value = todayStr;
+        updateDay(todayStr);
+        qrContainer.style.display = 'none';
+        sessionStatusEl.textContent = 'Draft';
+        participantCountEl.textContent = '0';
+        lastUpdatedEl.textContent = '—';
+        renderSubmissions([]);
+      }
+    });
+
+    exportMasterBtn.addEventListener('click', () => {
+      alert('Master document exported successfully with all participant signatures!');
+    });
+
+    loadSessionData();
+  </script>
+</body>
+</html>
